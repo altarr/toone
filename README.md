@@ -1,12 +1,12 @@
 # Toone
 
-Live audio broadcasting platform for events. Speakers broadcast, attendees listen through their phone browsers.
+Live audio broadcasting platform for events. A broadcaster goes live, attendees scan a QR code and listen through their phone browsers via WebRTC.
 
 ## How It Works
 
 1. **Admin** starts a stream from the web dashboard
-2. **Speaker** opens the broadcast page and taps the mic to go live
-3. **Attendees** scan a QR code, register, and listen in real time via WebRTC
+2. **Broadcaster** opens the broadcast page and taps the mic to go live
+3. **Attendees** scan a QR code and tap to listen in real time
 
 ## Tech Stack
 
@@ -70,25 +70,17 @@ brand/           Logo assets and brand guide
 docs/            Architecture and user guide
 ```
 
-## User Roles
-
-| Role | Permissions |
-|------|------------|
-| Admin | Full access: manage users, settings, start/stop streams, broadcast |
-| Speaker | Start/stop streams, broadcast on main channel |
-
 ## Pages
 
 | Route | Purpose |
 |-------|---------|
-| `/listen` | Attendee registration + audio player |
+| `/listen` | Audio player — tap to listen |
 | `/qr` | Full-screen QR code for projection |
 | `/admin/login` | Sign in |
 | `/admin` | Dashboard |
-| `/admin/broadcast` | Broadcast controls |
-| `/admin/settings` | Page title, registration fields |
-| `/admin/users` | User management |
-| `/admin/registrations` | View + export attendee data |
+| `/admin/broadcast` | Broadcast controls + mic + audio file playback |
+| `/admin/settings` | Page title |
+| `/admin/users` | User management + invite QR codes |
 
 ## Environment Variables
 
