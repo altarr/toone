@@ -4,7 +4,7 @@ import { authMiddleware } from '../auth/middleware';
 
 const router = Router();
 
-// Public — listeners need page_title
+// Public - listeners need page_title
 router.get('/public', (_req, res) => {
   const rows = db
     .prepare("SELECT key, value FROM settings WHERE key IN ('page_title', 'talk_name')")
@@ -21,7 +21,7 @@ router.get('/public', (_req, res) => {
   res.json(settings);
 });
 
-// Admin — get all settings
+// Admin - get all settings
 router.get('/', authMiddleware, (_req, res) => {
   const rows = db.prepare('SELECT key, value FROM settings').all() as {
     key: string;
@@ -38,7 +38,7 @@ router.get('/', authMiddleware, (_req, res) => {
   res.json(settings);
 });
 
-// Admin — update settings
+// Admin - update settings
 router.put('/', authMiddleware, (req, res) => {
   const { key, value } = req.body;
   if (!key) {

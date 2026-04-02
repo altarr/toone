@@ -1,11 +1,11 @@
-# Toone — User Guide
+# Toone - User Guide
 
 ## Getting Started
 
 ### First Login
 1. Go to your Toone instance URL at `/admin/login`
 2. Sign in with: `admin` / `admin`
-3. You'll be prompted to set a new password — choose something secure (6+ characters)
+3. You'll be prompted to set a new password - choose something secure (6+ characters)
 4. After changing your password, you'll be redirected to the admin dashboard
 
 ---
@@ -14,10 +14,10 @@
 
 The admin dashboard is your control center. From here you can access:
 
-- **Broadcaster** — Open the broadcast page to go live
-- **QR Page** — Opens the QR code page (for projection at events)
-- **Settings** — Configure page title
-- **Users** — Manage user accounts
+- **Broadcaster** - Open the broadcast page to go live
+- **QR Page** - Opens the QR code page (for projection at events)
+- **Settings** - Configure page title
+- **Users** - Manage user accounts
 
 The dashboard also shows the current **stream status** with listener count.
 
@@ -29,15 +29,15 @@ The dashboard also shows the current **stream status** with listener count.
 1. Go to **Users** from the dashboard
 2. Click **Add User**
 3. Fill in:
-   - **Username** — their login name
-   - **Password** — temporary password (they'll change it on first login)
+   - **Username** - their login name
+   - **Password** - temporary password (they'll change it on first login)
 4. Click **Create User**
 
 ### Inviting Users via QR
 1. Go to **Users** from the dashboard
 2. Click **Invite via QR**
 3. Click **Generate QR Code**
-4. Show the QR code to the person — they scan it and create their own account
+4. Show the QR code to the person - they scan it and create their own account
 
 ### Deleting Users
 - Click the **Delete** button next to any user (you can't delete yourself)
@@ -50,13 +50,13 @@ The dashboard also shows the current **stream status** with listener count.
 1. Go to **Broadcaster** from the dashboard
 2. Click **Start Stream**
 3. Tap the **microphone button** to begin broadcasting
-4. Your browser will ask for microphone permission — allow it
+4. Your browser will ask for microphone permission - allow it
 5. You're now live! The button turns red and shows a stop icon
 
 ### Controls While Live
-- **Stop button** (red circle) — stop your broadcast
-- **Mute** — toggle your microphone on/off
-- **Audio** — play an audio file through the broadcast:
+- **Stop button** (red circle) - stop your broadcast
+- **Mute** - toggle your microphone on/off
+- **Audio** - play an audio file through the broadcast:
   1. Click **Audio** to select a file (MP3, WAV, etc.)
   2. Click **Play** to broadcast the file (listeners hear it mixed with your mic)
   3. Click **Stop** to stop playback
@@ -126,7 +126,7 @@ The API URL might be wrong. Check that nginx is running and routing `/api/*` to 
 
 ### Listeners can't hear anything
 1. Make sure the broadcaster is actually live (red mic button active)
-2. Listeners must tap "Tap to Listen" — browsers block autoplay
+2. Listeners must tap "Tap to Listen" - browsers block autoplay
 3. Check the browser console for WebRTC errors
 
 ### 502 Bad Gateway

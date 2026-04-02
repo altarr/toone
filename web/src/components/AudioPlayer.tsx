@@ -85,14 +85,14 @@ export default function AudioPlayer() {
         );
       });
 
-      // Server says no producer yet — wait for producerReady
+      // Server says no producer yet - wait for producerReady
       if (consumerData.waiting) {
         setStatus('waiting-for-producer');
         consumingRef.current = false; // allow re-consume when producer appears
         return;
       }
 
-      // Got consumer data — play audio
+      // Got consumer data - play audio
       await playConsumerData(transport, consumerData);
       setStatus('playing');
     } catch (err: any) {
@@ -132,7 +132,7 @@ export default function AudioPlayer() {
     const transport = transportRef.current;
 
     if (!device || !transport) {
-      // No transport — do full reconnect
+      // No transport - do full reconnect
       cleanup();
       startConsuming();
       return;
@@ -151,7 +151,7 @@ export default function AudioPlayer() {
       });
 
       if (consumerData.waiting) {
-        // Still waiting — keep state
+        // Still waiting - keep state
         return;
       }
 
@@ -160,11 +160,11 @@ export default function AudioPlayer() {
       setStatus('playing');
     } catch (err: any) {
       console.error('Retry consume failed:', err);
-      // Stay in waiting state — will retry on next producerReady
+      // Stay in waiting state - will retry on next producerReady
     }
   }, [cleanup, startConsuming]);
 
-  // Socket handlers — registered once
+  // Socket handlers - registered once
   useEffect(() => {
     const socket = getSocket();
 
@@ -186,7 +186,7 @@ export default function AudioPlayer() {
     const handleProducerReady = (data: any) => {
       const ch = channel;
       if (data.channel === ch && statusRef.current === 'waiting-for-producer') {
-        console.log('Producer ready on channel', ch, '— retrying consume');
+        console.log('Producer ready on channel', ch, '- retrying consume');
         retryConsume();
       }
     };
@@ -231,7 +231,7 @@ export default function AudioPlayer() {
       <StreamStatus live={live} listenerCount={listenerCount} />
       <audio ref={audioRef} autoPlay playsInline />
 
-      {/* Idle — waiting for socket connection */}
+      {/* Idle - waiting for socket connection */}
       {status === 'idle' && (
         <div className="flex flex-col items-center gap-3">
           <div className="spinner" />
@@ -275,7 +275,7 @@ export default function AudioPlayer() {
               />
             ))}
           </div>
-          <p className="text-sm text-muted">Connected — waiting for speaker...</p>
+          <p className="text-sm text-muted">Connected - waiting for speaker...</p>
           <p className="text-xs text-muted-2">You will hear audio automatically when the speaker begins</p>
         </div>
       )}
@@ -301,7 +301,7 @@ export default function AudioPlayer() {
         </div>
       )}
 
-      {/* Stream ended — rejoin button */}
+      {/* Stream ended - rejoin button */}
       {status === 'ended' && (
         <div className="flex flex-col items-center gap-4">
           <p className="text-muted text-sm">Broadcast ended</p>

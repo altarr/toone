@@ -1,4 +1,4 @@
-# Toone — Architecture Document
+# Toone - Architecture Document
 
 ## System Overview
 
@@ -26,7 +26,7 @@ Toone is a real-time audio broadcasting platform built for live events. A broadc
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| Media Server | mediasoup 3.14 | WebRTC SFU — routes audio from producer to consumers |
+| Media Server | mediasoup 3.14 | WebRTC SFU - routes audio from producer to consumers |
 | Backend | Node.js + Express + TypeScript | REST API, auth, database |
 | Realtime | Socket.io 4.8 | WebRTC signaling (SDP/ICE exchange), stream state |
 | Frontend | Next.js 16 + React 19 + Tailwind v4 | Server-rendered web app |
@@ -64,7 +64,7 @@ server/src/
 
 ### Database Schema
 
-**`admin_users`** — All authenticated users
+**`admin_users`** - All authenticated users
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -75,14 +75,14 @@ server/src/
 | created_by | TEXT | Username who created this account |
 | created_at | TEXT | ISO datetime |
 
-**`settings`** — Key-value configuration
+**`settings`** - Key-value configuration
 
 | Key | Value Type | Description |
 |-----|-----------|-------------|
 | page_title | string | Title shown on listen page |
 | talk_name | string | Current talk/session name |
 
-**`invites`** — Invite codes for user registration
+**`invites`** - Invite codes for user registration
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -169,7 +169,7 @@ server/src/
 | Route | Access | Purpose |
 |-------|--------|---------|
 | `/` | Public | Redirects to /listen |
-| `/listen` | Public | Audio player — tap to listen |
+| `/listen` | Public | Audio player - tap to listen |
 | `/qr` | Public | Full-screen QR code for projection |
 | `/admin/login` | Public | Sign in |
 | `/admin` | Authenticated | Dashboard: stream status, navigation |

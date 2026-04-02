@@ -158,7 +158,7 @@ export function setupSignaling(io: Server) {
         const channel = data.channel || 'main';
         const producers = getChannelProducers(channel);
 
-        // No producers yet — tell client to wait, don't error
+        // No producers yet - tell client to wait, don't error
         if (!producers || producers.size === 0 || !hasActiveProducer(producers)) {
           addWaitingConsumer(channel, socket.id);
           callback({ waiting: true, channel });
@@ -200,7 +200,7 @@ export function setupSignaling(io: Server) {
         }
 
         if (consumeResults.length === 0) {
-          // Producers exist but none are consumable — wait
+          // Producers exist but none are consumable - wait
           addWaitingConsumer(channel, socket.id);
           callback({ waiting: true, channel });
           return;

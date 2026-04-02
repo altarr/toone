@@ -74,7 +74,7 @@ docs/            Architecture and user guide
 
 | Route | Purpose |
 |-------|---------|
-| `/listen` | Audio player — tap to listen |
+| `/listen` | Audio player - tap to listen |
 | `/qr` | Full-screen QR code for projection |
 | `/admin/login` | Sign in |
 | `/admin` | Dashboard |

@@ -29,7 +29,7 @@ router.delete('/:id', authMiddleware, (req: AuthRequest, res) => {
   res.json({ message: 'Deleted' });
 });
 
-// Public — get invite info
+// Public - get invite info
 router.get('/:code/info', (req, res) => {
   const invite = db.prepare('SELECT code, used_by FROM invites WHERE code = ?').get(req.params.code) as any;
   if (!invite) {
@@ -43,7 +43,7 @@ router.get('/:code/info', (req, res) => {
   res.json({ valid: true });
 });
 
-// Public — register with invite code
+// Public - register with invite code
 router.post('/:code/register', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
