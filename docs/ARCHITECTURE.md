@@ -1,23 +1,21 @@
-# TrendAI Tune In — Architecture Document
+# Toone — Architecture Document
 
 ## System Overview
 
-TrendAI Tune In is a real-time audio broadcasting platform built for live events. Speakers broadcast their voice, translators provide simultaneous interpretation on separate channels, panelists participate via push-to-talk, and attendees listen through their phone browsers.
+Toone is a real-time audio broadcasting platform built for live events. A broadcaster sends audio via WebRTC and listeners tune in through their phone browsers.
 
 ```
-[Speakers/Panelists]          [Translators]              [Listeners]
-      |                            |                     /    |    \
-      | WebRTC (produce)           | WebRTC (produce)   WebRTC (consume)
-      v                            v                     v    v    v
+[Broadcaster]                    [Listeners]
+      |                         /    |    \
+      | WebRTC (produce)       WebRTC (consume)
+      v                         v    v    v
 +------------------------------------------------------------------+
 |                     Node.js Server                                |
 |  Express + Socket.io + mediasoup (SFU)                           |
 |                                                                  |
-|  Main Channel:  speaker + panelists → N listeners                |
-|  ES Channel:    Spanish translator → N listeners                 |
-|  FR Channel:    French translator → N listeners                  |
+|  Main Channel: broadcaster → N listeners                         |
 |                                                                  |
-|  SQLite: users, settings, registrations                          |
+|  SQLite: users, settings                                         |
 +------------------------------------------------------------------+
       |                    |                    |
    [nginx]           [Next.js]           [Let's Encrypt]
@@ -28,26 +26,17 @@ TrendAI Tune In is a real-time audio broadcasting platform built for live events
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| Media Server | mediasoup 3.14 | WebRTC SFU — routes audio from producers to consumers |
+| Media Server | mediasoup 3.14 | WebRTC SFU — routes audio from producer to consumers |
 | Backend | Node.js + Express + TypeScript | REST API, auth, database |
 | Realtime | Socket.io 4.8 | WebRTC signaling (SDP/ICE exchange), stream state |
 | Frontend | Next.js 16 + React 19 + Tailwind v4 | Server-rendered web app |
 | WebRTC Client | mediasoup-client 3.18 | Browser WebRTC API wrapper |
-| Database | SQLite (better-sqlite3) | Users, settings, registrations |
-| Auth | JWT + bcrypt | Token-based authentication with role-based access |
-| QR Codes | qrcode npm | Branded QR code generation |
+| Database | SQLite (better-sqlite3) | Users, settings |
+| Auth | JWT + bcrypt | Token-based authentication |
+| QR Codes | qrcode npm | QR code generation |
 | Reverse Proxy | nginx | HTTPS termination, WebSocket proxying |
 | SSL | Let's Encrypt (certbot) | Automated certificate management |
 | Deployment | Docker Compose | Container orchestration |
-
-## User Roles
-
-| Role | Permissions |
-|------|------------|
-| **Admin** | Full access: manage users, settings, start/stop streams, broadcast |
-| **Speaker** | Start/stop streams, broadcast on main channel |
-| **Translator** | Broadcast on assigned language channel, monitor main channel |
-| **Panelist** | Push-to-talk on main channel (hold = unmuted, release = muted) |
 
 ## Server Architecture
 
@@ -59,23 +48,23 @@ server/src/
 ├── config.ts          # Environment config, mediasoup codec/transport settings
 ├── db.ts              # SQLite schema, migrations, default seed data
 ├── auth/
-│   ├── middleware.ts   # JWT validation, requireRole() middleware
+│   ├── middleware.ts   # JWT validation middleware
 │   ├── routes.ts      # POST /login, /change-password, GET /me
-│   └── users.ts       # GET/POST/DELETE /users (admin CRUD)
+│   └── users.ts       # GET/POST/DELETE /users
 ├── api/
 │   ├── stream.ts      # GET /status, POST /start, /stop
 │   ├── settings.ts    # GET /public, GET /, PUT /
-│   └── registration.ts # POST /, GET /, GET /export, DELETE /
+│   └── invites.ts     # Invite code management
 ├── media/
 │   ├── mediasoup.ts   # Worker, Router, WebRTC Transport factory
-│   └── rooms.ts       # Multi-channel room state management
+│   └── rooms.ts       # Stream state management
 └── signaling/
     └── handlers.ts    # Socket.io event handlers for WebRTC negotiation
 ```
 
 ### Database Schema
 
-**`admin_users`** — All authenticated users (not just admins)
+**`admin_users`** — All authenticated users
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -83,8 +72,6 @@ server/src/
 | username | TEXT UNIQUE | Login username |
 | password_hash | TEXT | bcrypt hash (10 rounds) |
 | must_change_password | INTEGER | 1 = force change on next login |
-| role | TEXT | admin, speaker, translator, panelist |
-| language | TEXT | Language code for translators (e.g., "es") |
 | created_by | TEXT | Username who created this account |
 | created_at | TEXT | ISO datetime |
 
@@ -94,17 +81,17 @@ server/src/
 |-----|-----------|-------------|
 | page_title | string | Title shown on listen page |
 | talk_name | string | Current talk/session name |
-| languages | JSON array | `[{code:"es", name:"Spanish"}, ...]` |
-| registration_fields | JSON array | Dynamic form field definitions |
 
-**`registrations`** — Attendee registration data
+**`invites`** — Invite codes for user registration
 
 | Column | Type | Description |
 |--------|------|-------------|
 | id | INTEGER PK | Auto-increment |
-| session_id | TEXT | Stream session UUID |
-| data | TEXT | JSON form data |
-| registered_at | TEXT | ISO datetime |
+| code | TEXT UNIQUE | Invite code |
+| used_by | TEXT | Username who used the invite |
+| created_by | TEXT | Username who created the invite |
+| created_at | TEXT | ISO datetime |
+| used_at | TEXT | ISO datetime when used |
 
 ### REST API Endpoints
 
@@ -116,82 +103,64 @@ server/src/
 | GET | /me | JWT | Current user info |
 
 #### Users (`/api/users`)
-| Method | Path | Auth | Roles | Description |
-|--------|------|------|-------|-------------|
-| GET | / | JWT | any | List all users |
-| POST | / | JWT | admin | Create user with role/language |
-| DELETE | /:id | JWT | admin | Delete user |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | / | JWT | List all users |
+| POST | / | JWT | Create user |
+| DELETE | /:id | JWT | Delete user |
 
 #### Stream (`/api/stream`)
-| Method | Path | Auth | Roles | Description |
-|--------|------|------|-------|-------------|
-| GET | /status | - | - | Stream state + per-channel info |
-| POST | /start | JWT | admin, speaker | Start broadcast session |
-| POST | /stop | JWT | admin | Stop all channels |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /status | - | Stream state |
+| POST | /start | JWT | Start broadcast session |
+| POST | /stop | JWT | Stop broadcast |
 
 #### Settings (`/api/settings`)
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | /public | - | Public settings (title, fields, languages) |
+| GET | /public | - | Public settings (title) |
 | GET | / | JWT | All settings |
 | PUT | / | JWT | Update setting (key + value) |
 
-#### Registrations (`/api/registrations`)
+#### Invites (`/api/invites`)
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | / | - | Submit registration |
-| GET | / | JWT | List registrations |
-| GET | /export | JWT | Download CSV |
-| DELETE | / | JWT | Clear all |
+| GET | / | JWT | List all invites |
+| POST | / | JWT | Create invite code |
+| GET | /:code/info | - | Check invite validity |
+| POST | /:code/register | - | Register via invite |
+| DELETE | /:id | JWT | Delete invite |
 
 ### Socket.io Events
 
-#### Producer Events (Broadcasters)
+#### Producer Events (Broadcaster)
 | Event | Payload | Response | Description |
 |-------|---------|----------|-------------|
-| createProducerTransport | {token, channel} | {params} | Create send transport |
-| connectProducerTransport | {dtlsParameters, channel} | {} | DTLS handshake |
-| produce | {kind, rtpParameters, channel, paused} | {id} | Start sending audio |
-| pauseProducer | {channel} | {} | Mute (panelist push-to-talk release) |
-| resumeProducer | {channel} | {} | Unmute (panelist push-to-talk press) |
+| createProducerTransport | {token} | {params} | Create send transport |
+| connectProducerTransport | {dtlsParameters} | {} | DTLS handshake |
+| produce | {kind, rtpParameters} | {id} | Start sending audio |
 
 #### Consumer Events (Listeners)
 | Event | Payload | Response | Description |
 |-------|---------|----------|-------------|
-| createConsumerTransport | {channel} | {params} | Create receive transport |
-| connectConsumerTransport | {dtlsParameters, channel} | {} | DTLS handshake |
-| consume | {rtpCapabilities, channel} | consumer params | Subscribe to channel producers |
+| createConsumerTransport | {} | {params} | Create receive transport |
+| connectConsumerTransport | {dtlsParameters} | {} | DTLS handshake |
+| consume | {rtpCapabilities} | consumer params | Subscribe to audio |
 | getRouterRtpCapabilities | {} | RTP capabilities | Get codec info for Device |
 
 #### Broadcast Events
 | Event | Direction | Description |
 |-------|-----------|-------------|
-| streamState | server → all clients | Stream status + per-channel info |
-
-### Multi-Channel Media Architecture
-
-```
-Main Channel ("main"):
-  Producers: Speaker + Panelists (multiple)
-  Consumers: Listeners who selected "Original"
-
-Translation Channel ("es"):
-  Producers: Spanish Translator (single)
-  Consumers: Listeners who selected "Spanish"
-
-Translation Channel ("fr"):
-  Producers: French Translator (single)
-  Consumers: Listeners who selected "French"
-```
-
-Each channel is independent. A listener subscribes to one channel at a time. Translators monitor the main channel audio while broadcasting on their language channel.
+| streamState | server → all clients | Stream status + listener count |
+| producerReady | server → waiting clients | Notifies when broadcaster starts |
 
 ### mediasoup Configuration
 
-- **Codec**: Opus (48kHz, 2 channels, error correction level H)
+- **Codec**: Opus (48kHz, 2 channels)
 - **RTC Port Range**: 10000-10100 (UDP + TCP)
 - **Transport Bitrate**: 1.5 Mbps max incoming, 1 Mbps initial outgoing
-- **Worker**: Single worker (supports ~200-500 audio-only consumers on 4-core machine)
+- **Worker**: Single worker (supports ~200-500 audio-only consumers)
 
 ## Frontend Architecture
 
@@ -200,22 +169,14 @@ Each channel is independent. A listener subscribes to one channel at a time. Tra
 | Route | Access | Purpose |
 |-------|--------|---------|
 | `/` | Public | Redirects to /listen |
-| `/listen` | Public | Registration form → language selector → audio player |
-| `/qr` | Public | Full-screen QR code for projection (with fullscreen toggle) |
-| `/admin/login` | Public | Sign-in for all roles |
-| `/admin` | Admin | Dashboard: stream status, navigation cards |
-| `/admin/broadcast` | Admin/Speaker/Translator/Panelist | Broadcast controls, mic, mute, push-to-talk, audio file playback |
-| `/admin/settings` | Admin | Page title, registration fields, languages |
-| `/admin/users` | Any authenticated | User list; admin can create/delete |
-| `/admin/registrations` | Admin | View + CSV export |
-
-### Broadcast Page Features
-- **Start/Stop Stream** (admin/speaker only)
-- **Mic button** with mute toggle
-- **Push-to-talk** for panelists (hold to speak)
-- **Audio file playback** mixed into broadcast stream
-- **Translator monitor** listens to main channel while broadcasting
-- **Channel label** shows which channel you're broadcasting on
+| `/listen` | Public | Audio player — tap to listen |
+| `/qr` | Public | Full-screen QR code for projection |
+| `/admin/login` | Public | Sign in |
+| `/admin` | Authenticated | Dashboard: stream status, navigation |
+| `/admin/broadcast` | Authenticated | Broadcast controls, mic, mute, audio file playback |
+| `/admin/settings` | Authenticated | Page title configuration |
+| `/admin/users` | Authenticated | User management + invite QR codes |
+| `/invite/[code]` | Public | Account creation via invite |
 
 ### Audio Mixing (Broadcast Page)
 ```
@@ -256,8 +217,7 @@ The Web Audio API mixes mic and file audio into a single stream that's sent via 
 ## Security
 
 - **Passwords**: bcrypt with 10 rounds, forced change on first login
-- **JWT**: 24h expiration, includes role for RBAC
-- **RBAC**: `requireRole()` middleware on protected routes
+- **JWT**: 24h expiration
 - **HTTPS**: Required for WebRTC in production (Let's Encrypt)
 - **SQL**: Parameterized queries via better-sqlite3 prepared statements
 - **CORS**: Enabled globally (restrict in production if needed)

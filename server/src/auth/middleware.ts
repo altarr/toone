@@ -7,8 +7,6 @@ export interface AuthRequest extends Request {
     id: number;
     username: string;
     must_change_password: boolean;
-    role: string;
-    language: string | null;
   };
 }
 
@@ -26,25 +24,9 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
       id: decoded.id,
       username: decoded.username,
       must_change_password: decoded.must_change_password,
-      role: decoded.role || 'admin',
-      language: decoded.language || null,
     };
     next();
   } catch {
     res.status(401).json({ error: 'Invalid token' });
   }
-}
-
-export function requireRole(...roles: string[]) {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      res.status(401).json({ error: 'Not authenticated' });
-      return;
-    }
-    if (!roles.includes(req.user.role)) {
-      res.status(403).json({ error: 'Insufficient permissions' });
-      return;
-    }
-    next();
-  };
 }

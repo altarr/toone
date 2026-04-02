@@ -4,10 +4,10 @@ import { authMiddleware } from '../auth/middleware';
 
 const router = Router();
 
-// Public — listeners need page_title and registration_fields
+// Public — listeners need page_title
 router.get('/public', (_req, res) => {
   const rows = db
-    .prepare("SELECT key, value FROM settings WHERE key IN ('page_title', 'registration_fields', 'talk_name', 'languages')")
+    .prepare("SELECT key, value FROM settings WHERE key IN ('page_title', 'talk_name')")
     .all() as { key: string; value: string }[];
 
   const settings: Record<string, any> = {};

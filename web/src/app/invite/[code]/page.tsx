@@ -76,7 +76,6 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
     return (
       <div className="flex-1 flex items-center justify-center p-5">
         <div className="card w-full max-w-sm text-center">
-          <img src="/art/TrendAI-Logo-White-RGB.png" alt="TrendAI" className="h-10 mx-auto mb-6" />
           <h1 className="text-lg font-bold uppercase tracking-wider mb-4">Invite Used</h1>
           <p className="text-sm text-muted mb-6">This invite has already been used. Contact an admin for a new invite.</p>
           <a href="/admin/login" className="btn-outline inline-block">Sign In</a>
@@ -89,7 +88,6 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
     return (
       <div className="flex-1 flex items-center justify-center p-5">
         <div className="card w-full max-w-sm text-center">
-          <img src="/art/TrendAI-Logo-White-RGB.png" alt="TrendAI" className="h-10 mx-auto mb-6" />
           <h1 className="text-lg font-bold uppercase tracking-wider mb-4">Invalid Invite</h1>
           <p className="text-sm text-error">{error || 'This invite link is not valid.'}</p>
         </div>
@@ -97,27 +95,16 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
     );
   }
 
-  const ROLE_LABELS: Record<string, string> = {
-    speaker: 'Speaker',
-    translator: 'Translator',
-    panelist: 'Panelist',
-  };
-
   return (
     <div className="flex-1 flex items-center justify-center p-5">
       <div className="card w-full max-w-sm">
         <div className="flex justify-center mb-6">
-          <img src="/art/TrendAI-Logo-White-RGB.png" alt="TrendAI" className="h-10" />
+          <img src="/logo-full-white.svg" alt="Toone" className="h-10" />
         </div>
 
         <h1 className="text-lg font-bold text-center uppercase tracking-wider mb-2">
-          Join as {ROLE_LABELS[inviteInfo.role] || inviteInfo.role}
+          Create Account
         </h1>
-        {inviteInfo.language && (
-          <p className="text-sm text-blue-400 text-center mb-2">
-            Language: {inviteInfo.language.toUpperCase()}
-          </p>
-        )}
         <p className="text-sm text-muted text-center mb-8">
           Create your account to get started.
         </p>

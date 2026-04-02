@@ -73,11 +73,9 @@ export function setupSignaling(io: Server) {
         const entry = getProducerEntry(channel, socket.id);
         if (!entry) throw new Error('No producer transport');
 
-        const paused = data.paused || false;
         const producer = await entry.transport.produce({
           kind: data.kind,
           rtpParameters: data.rtpParameters,
-          paused,
         });
 
         setProducer(channel, socket.id, producer);

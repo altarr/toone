@@ -17,11 +17,11 @@ sudo chmod +x /usr/local/bin/docker-compose
 
 echo "=== Cloning project ==="
 cd /home/ec2-user
-if [ -d "trendaitunein" ]; then
-  cd trendaitunein && git pull
+if [ -d "toone" ]; then
+  cd toone && git pull
 else
-  git clone https://github.com/altarr/trendaitunein.git
-  cd trendaitunein
+  git clone https://github.com/altarr/toone.git
+  cd toone
 fi
 
 echo "=== Setting environment ==="

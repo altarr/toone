@@ -91,7 +91,7 @@ export default function AdminLoginPage() {
     <div className="flex-1 flex items-center justify-center p-5">
       <div className="card w-full max-w-sm">
         <div className="flex justify-center mb-8">
-          <img src="/art/TrendAI-Logo-White-RGB.png" alt="TrendAI" className="h-10" />
+          <img src="/logo-full-white.svg" alt="Toone" className="h-10" />
         </div>
 
         {!mustChangePassword ? (

@@ -9,7 +9,6 @@ import { setupSignaling } from './signaling/handlers';
 import authRoutes from './auth/routes';
 import userRoutes from './auth/users';
 import settingsRoutes from './api/settings';
-import registrationRoutes from './api/registration';
 import streamRoutes from './api/stream';
 import inviteRoutes from './api/invites';
 
@@ -39,7 +38,6 @@ async function main() {
   app.use('/api/auth', authRoutes);
   app.use('/api/users', userRoutes);
   app.use('/api/settings', settingsRoutes);
-  app.use('/api/registrations', registrationRoutes);
   app.use('/api/stream', streamRoutes);
   app.use('/api/invites', inviteRoutes);
 

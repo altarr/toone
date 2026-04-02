@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TrendAI Tune In",
-  description: "Live audio broadcast - scan, register, and tune in",
+  title: "Toone",
+  description: "Live audio broadcast - scan, register, and listen",
 };
 
 export default function RootLayout({

@@ -15,11 +15,8 @@ export default function BroadcastPage() {
   const user = getUser();
   const [status, setStatus] = useState<Status>('idle');
   const [muted, setMuted] = useState(false);
-  // panelist uses same mute toggle as everyone else
-  const [streamState, setStreamState] = useState<any>({ live: false, listenerCount: 0, channels: {} });
+  const [streamState, setStreamState] = useState<any>({ live: false, listenerCount: 0 });
   const [error, setError] = useState('');
-  const [monitorConnected, setMonitorConnected] = useState(false);
-  const [monitorVolume, setMonitorVolume] = useState(80);
 
   const [playingFile, setPlayingFile] = useState(false);
   const [audioFileName, setAudioFileName] = useState('');
@@ -36,19 +33,6 @@ export default function BroadcastPage() {
   const fileGainRef = useRef<GainNode | null>(null);
   const audioBufferRef = useRef<AudioBuffer | null>(null);
 
-  // Translator monitor refs
-  const monitorTransportRef = useRef<any>(null);
-  const monitorAudioRef = useRef<HTMLAudioElement>(null);
-
-  const isPanelist = user?.role === 'panelist';
-  const isAdmin = user?.role === 'admin';
-  const isSpeaker = user?.role === 'speaker';
-  const isTranslator = user?.role === 'translator';
-  const canStartStop = isAdmin || isSpeaker;
-
-  const channel = isTranslator ? (user?.language || 'main') : 'main';
-  const channelLabel = isTranslator ? `Translation: ${user?.language?.toUpperCase()}` : 'Main';
-
   useEffect(() => {
     if (!user || user.must_change_password) {
       router.push('/admin/login');
@@ -58,13 +42,6 @@ export default function BroadcastPage() {
     socket.on('streamState', (state: any) => setStreamState(state));
     return () => { socket.off('streamState'); };
   }, [router]);
-
-  // Update monitor volume
-  useEffect(() => {
-    if (monitorAudioRef.current) {
-      monitorAudioRef.current.volume = monitorVolume / 100;
-    }
-  }, [monitorVolume]);
 
   const ensureDevice = async () => {
     if (deviceRef.current) return deviceRef.current;
@@ -79,62 +56,6 @@ export default function BroadcastPage() {
     await device.load({ routerRtpCapabilities: rtpCapabilities });
     deviceRef.current = device;
     return device;
-  };
-
-  // Translator: connect to main channel as listener
-  const startMonitor = async () => {
-    try {
-      const device = await ensureDevice();
-      const socket = getSocket();
-
-      const transportParams = await new Promise<any>((resolve, reject) => {
-        socket.emit('createConsumerTransport', { channel: 'main' }, (data: any) => {
-          if (data.error) reject(new Error(data.error));
-          else resolve(data.params);
-        });
-      });
-
-      const transport = device.createRecvTransport(transportParams);
-      monitorTransportRef.current = transport;
-
-      transport.on('connect', ({ dtlsParameters }, callback, errback) => {
-        socket.emit('connectConsumerTransport', { dtlsParameters, channel: 'main' }, (res: any) => {
-          if (res.error) errback(new Error(res.error));
-          else callback();
-        });
-      });
-
-      const consumerData = await new Promise<any>((resolve, reject) => {
-        socket.emit('consume', { rtpCapabilities: device.rtpCapabilities, channel: 'main' }, (data: any) => {
-          if (data.error) reject(new Error(data.error));
-          else resolve(data);
-        });
-      });
-
-      const consumerParams = consumerData.multiple ? consumerData.consumers : [consumerData];
-      const tracks: MediaStreamTrack[] = [];
-
-      for (const params of consumerParams) {
-        const consumer = await transport.consume({
-          id: params.id,
-          producerId: params.producerId,
-          kind: params.kind,
-          rtpParameters: params.rtpParameters,
-        });
-        tracks.push(consumer.track);
-      }
-
-      const stream = new MediaStream(tracks);
-      if (monitorAudioRef.current) {
-        monitorAudioRef.current.srcObject = stream;
-        monitorAudioRef.current.volume = monitorVolume / 100;
-        await monitorAudioRef.current.play();
-      }
-      setMonitorConnected(true);
-    } catch (err: any) {
-      console.error('Monitor error:', err);
-      // Non-fatal — translator can still broadcast without monitor
-    }
   };
 
   const handleStartStream = async () => {
@@ -181,7 +102,7 @@ export default function BroadcastPage() {
       const token = getToken();
 
       const transportParams = await new Promise<any>((resolve, reject) => {
-        socket.emit('createProducerTransport', { token, channel }, (data: any) => {
+        socket.emit('createProducerTransport', { token }, (data: any) => {
           if (data.error) reject(new Error(data.error));
           else resolve(data.params);
         });
@@ -191,14 +112,14 @@ export default function BroadcastPage() {
       transportRef.current = transport;
 
       transport.on('connect', ({ dtlsParameters }, callback, errback) => {
-        socket.emit('connectProducerTransport', { dtlsParameters, channel }, (res: any) => {
+        socket.emit('connectProducerTransport', { dtlsParameters }, (res: any) => {
           if (res.error) errback(new Error(res.error));
           else callback();
         });
       });
 
       transport.on('produce', ({ kind, rtpParameters }, callback, errback) => {
-        socket.emit('produce', { kind, rtpParameters, channel, paused: isPanelist }, (res: any) => {
+        socket.emit('produce', { kind, rtpParameters }, (res: any) => {
           if (res.error) errback(new Error(res.error));
           else callback({ id: res.id });
         });
@@ -207,20 +128,8 @@ export default function BroadcastPage() {
       const mixedTrack = mixedStream.getAudioTracks()[0];
       const producer = await transport.produce({ track: mixedTrack });
       producerRef.current = producer;
-
-      if (isPanelist) {
-        micGain.gain.value = 0;
-        setMuted(true);
-      } else {
-        setMuted(false);
-      }
-
+      setMuted(false);
       setStatus('live');
-
-      // Translator: auto-connect monitor to main channel
-      if (isTranslator) {
-        startMonitor();
-      }
     } catch (err: any) {
       setError(err.message || 'Failed to start broadcast');
       setStatus('error');
@@ -233,12 +142,8 @@ export default function BroadcastPage() {
     producerRef.current = null;
     transportRef.current?.close();
     transportRef.current = null;
-    monitorTransportRef.current?.close();
-    monitorTransportRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
-    if (monitorAudioRef.current) monitorAudioRef.current.srcObject = null;
-    setMonitorConnected(false);
     setStatus('idle');
     setMuted(false);
   };
@@ -249,8 +154,6 @@ export default function BroadcastPage() {
     micGainRef.current.gain.value = newMuted ? 0 : 1;
     setMuted(newMuted);
   };
-
-  // Push-to-talk removed — panelists now use same mute toggle as speakers
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -295,29 +198,22 @@ export default function BroadcastPage() {
           <button onClick={() => router.push('/admin')} className="text-muted hover:text-foreground text-sm">
             &larr; Back
           </button>
-          <img src="/art/TrendAI-Logo-White-RGB.png" alt="TrendAI" className="h-8" />
+          <img src="/logo-full-white.svg" alt="Toone" className="h-8" />
           <div className="w-12" />
         </div>
 
-        <h1 className="text-lg font-bold uppercase tracking-wider mb-2">Broadcast</h1>
-        <p className="text-xs text-muted mb-6">
-          Channel: <span className="text-foreground font-semibold">{channelLabel}</span>
-        </p>
+        <h1 className="text-lg font-bold uppercase tracking-wider mb-6">Broadcast</h1>
 
         {/* Stream control */}
-        {canStartStop && (
-          <div className="mb-8 flex justify-center gap-3">
-            {!streamState.live ? (
-              <button onClick={handleStartStream} className="btn-gradient">Start Stream</button>
-            ) : (
-              isAdmin && (
-                <button onClick={handleStopStream} className="btn-outline border-error text-error hover:bg-error hover:text-white hover:border-error">
-                  Stop Stream
-                </button>
-              )
-            )}
-          </div>
-        )}
+        <div className="mb-8 flex justify-center gap-3">
+          {!streamState.live ? (
+            <button onClick={handleStartStream} className="btn-gradient">Start Stream</button>
+          ) : (
+            <button onClick={handleStopStream} className="btn-outline border-error text-error hover:bg-error hover:text-white hover:border-error">
+              Stop Stream
+            </button>
+          )}
+        </div>
 
         {/* Status */}
         <div className="mb-6 flex flex-col items-center gap-1">
@@ -329,10 +225,7 @@ export default function BroadcastPage() {
           )}
         </div>
 
-        {/* Hidden monitor audio element for translators */}
-        <audio ref={monitorAudioRef} autoPlay playsInline />
-
-        {/* Big broadcast button — shows when stream is live and not yet broadcasting */}
+        {/* Big broadcast button */}
         {streamState.live && status !== 'live' && (
           <div className="flex justify-center mb-4">
             <button
@@ -352,7 +245,7 @@ export default function BroadcastPage() {
           </div>
         )}
 
-        {/* Live controls — same for speaker, translator, admin, and panelist */}
+        {/* Live controls */}
         {status === 'live' && (
           <>
             <div className="flex justify-center mb-4">
@@ -366,37 +259,6 @@ export default function BroadcastPage() {
               </button>
             </div>
             <p className="text-muted text-sm font-semibold">Tap to stop broadcasting</p>
-
-            {/* Translator monitor panel */}
-            {isTranslator && (
-              <div className="mt-6 card text-left">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
-                    Monitoring: Main Channel
-                  </span>
-                  <span className={`w-2 h-2 rounded-full ${monitorConnected ? 'bg-green-400' : 'bg-muted-2'}`} />
-                </div>
-                <p className="text-[11px] text-muted mb-3">
-                  {monitorConnected
-                    ? 'You are hearing the main speaker. Speak your translation into the mic.'
-                    : 'Connecting to main channel...'}
-                </p>
-                <div className="flex items-center gap-3">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#888">
-                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
-                  </svg>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={monitorVolume}
-                    onChange={(e) => setMonitorVolume(parseInt(e.target.value))}
-                    className="flex-1 accent-red h-1"
-                  />
-                  <span className="text-xs text-muted w-8 text-right">{monitorVolume}%</span>
-                </div>
-              </div>
-            )}
 
             {/* Mute + Audio File */}
             <div className="flex justify-center gap-3 mt-6">
@@ -478,9 +340,7 @@ export default function BroadcastPage() {
 
         {/* Waiting messages */}
         {!streamState.live && status === 'idle' && (
-          <p className="text-muted text-sm mt-4">
-            {canStartStop ? 'Start the stream to begin broadcasting.' : 'Waiting for stream to start...'}
-          </p>
+          <p className="text-muted text-sm mt-4">Start the stream to begin broadcasting.</p>
         )}
 
         {status === 'idle' && streamState.live && (

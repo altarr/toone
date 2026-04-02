@@ -16,7 +16,6 @@ export interface UserInfo {
   username: string;
   must_change_password: boolean;
   role: string;
-  language: string | null;
 }
 
 export function getUser(): UserInfo | null {
@@ -29,7 +28,6 @@ export function getUser(): UserInfo | null {
       username: payload.username,
       must_change_password: payload.must_change_password,
       role: payload.role || 'admin',
-      language: payload.language || null,
     };
   } catch {
     return null;

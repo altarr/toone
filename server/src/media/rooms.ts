@@ -31,7 +31,7 @@ interface StreamState {
 let streamState: StreamState = {
   live: false,
   sessionId: null,
-  title: 'TrendAI Tune In',
+  title: 'Toone',
   startedAt: null,
 };
 

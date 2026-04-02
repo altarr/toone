@@ -5,14 +5,10 @@ import { Device } from 'mediasoup-client';
 import { getSocket } from '@/lib/socket';
 import StreamStatus from './StreamStatus';
 
-interface AudioPlayerProps {
-  channel?: string;
-  onListenerCountChange?: (count: number) => void;
-}
-
 type PlayerStatus = 'idle' | 'connecting' | 'waiting' | 'waiting-for-producer' | 'playing' | 'ended' | 'error';
 
-export default function AudioPlayer({ channel = 'main', onListenerCountChange }: AudioPlayerProps) {
+export default function AudioPlayer() {
+  const channel = 'main';
   const [status, setStatus] = useState<PlayerStatus>('idle');
   const [live, setLive] = useState(false);
   const [listenerCount, setListenerCount] = useState(0);
@@ -22,11 +18,9 @@ export default function AudioPlayer({ channel = 'main', onListenerCountChange }:
   const deviceRef = useRef<Device | null>(null);
   const transportRef = useRef<any>(null);
   const consumingRef = useRef(false);
-  const channelRef = useRef(channel);
   const statusRef = useRef<PlayerStatus>('idle');
 
   statusRef.current = status;
-  channelRef.current = channel;
 
   const cleanup = useCallback(() => {
     try { transportRef.current?.close(); } catch {}
@@ -56,7 +50,7 @@ export default function AudioPlayer({ channel = 'main', onListenerCountChange }:
     setStatus('connecting');
 
     const socket = getSocket();
-    const ch = channelRef.current;
+    const ch = channel;
 
     try {
       const device = await ensureDevice();
@@ -133,7 +127,7 @@ export default function AudioPlayer({ channel = 'main', onListenerCountChange }:
   // Re-consume when producer becomes available (for waiting-for-producer state)
   const retryConsume = useCallback(async () => {
     const socket = getSocket();
-    const ch = channelRef.current;
+    const ch = channel;
     const device = deviceRef.current;
     const transport = transportRef.current;
 
@@ -178,7 +172,6 @@ export default function AudioPlayer({ channel = 'main', onListenerCountChange }:
       setLive(state.live);
       setListenerCount(state.listenerCount);
       setWaitingCount(state.waitingCount || 0);
-      onListenerCountChange?.(state.listenerCount);
 
       // Stream ended while we were playing or waiting for producer
       if (!state.live) {
@@ -191,7 +184,7 @@ export default function AudioPlayer({ channel = 'main', onListenerCountChange }:
     };
 
     const handleProducerReady = (data: any) => {
-      const ch = channelRef.current;
+      const ch = channel;
       if (data.channel === ch && statusRef.current === 'waiting-for-producer') {
         console.log('Producer ready on channel', ch, '— retrying consume');
         retryConsume();
@@ -227,14 +220,6 @@ export default function AudioPlayer({ channel = 'main', onListenerCountChange }:
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Channel change while playing
-  useEffect(() => {
-    if (statusRef.current === 'playing' || statusRef.current === 'waiting-for-producer') {
-      cleanup();
-      startConsuming();
-    }
-  }, [channel, cleanup, startConsuming]);
 
   const handleTapToListen = () => {
     cleanup();

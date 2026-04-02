@@ -37,26 +37,11 @@ export function initDb() {
       used_at TEXT
     );
 
-    CREATE TABLE IF NOT EXISTS registrations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      session_id TEXT,
-      data TEXT NOT NULL,
-      registered_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
   `);
 
   // Migrate: ensure invites table exists (for older DBs)
   try {
     db.exec(`CREATE TABLE IF NOT EXISTS invites (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT UNIQUE NOT NULL, role TEXT NOT NULL, language TEXT, used_by TEXT, created_by TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), used_at TEXT)`);
-  } catch {}
-
-  // Migrate: add role column if missing
-  try {
-    db.exec(`ALTER TABLE admin_users ADD COLUMN role TEXT DEFAULT 'admin'`);
-    db.exec(`UPDATE admin_users SET role = 'admin' WHERE role IS NULL`);
-  } catch {}
-  try {
-    db.exec(`ALTER TABLE admin_users ADD COLUMN language TEXT`);
   } catch {}
 
   // Seed default admin if none exist
@@ -73,17 +58,8 @@ export function initDb() {
   const upsertSetting = db.prepare(
     'INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)'
   );
-  upsertSetting.run('page_title', 'TrendAI Tune In');
+  upsertSetting.run('page_title', 'Toone');
   upsertSetting.run('talk_name', '');
-  upsertSetting.run('languages', '[]');
-  upsertSetting.run(
-    'registration_fields',
-    JSON.stringify([
-      { id: 'name', label: 'Full Name', type: 'text', required: true },
-      { id: 'email', label: 'Email', type: 'email', required: true },
-      { id: 'company', label: 'Company', type: 'text', required: false },
-    ])
-  );
 }
 
 export default db;

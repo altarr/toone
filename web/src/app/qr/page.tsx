@@ -6,19 +6,41 @@ import { apiFetch } from '@/lib/api';
 import StreamStatus from '@/components/StreamStatus';
 
 const QR_STYLES = {
-  red: { color: '#d71920', bg: '#ffffff', logo: '/art/TrendAI-Logo-Icon-Full-Color-RGB.png', logoBg: '#ffffff' },
-  black: { color: '#000000', bg: '#ffffff', logo: '/art/TrendAI-Logo-Icon-Black-RGB.png', logoBg: '#ffffff' },
-  white: { color: '#ffffff', bg: '#1a1a1a', logo: '/art/TrendAI-Logo-Icon-White-RGB.png', logoBg: '#1a1a1a' },
+  red: { color: '#d71920', bg: '#ffffff' },
+  black: { color: '#000000', bg: '#ffffff' },
+  white: { color: '#ffffff', bg: '#1a1a1a' },
 };
 
-function loadImage(src: string): Promise<HTMLImageElement | null> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
-    img.src = src;
-  });
+function drawSoundwaveBars(ctx: CanvasRenderingContext2D, cx: number, cy: number, scale: number, color: string) {
+  const bars = [
+    { dx: -24, h: 10 },
+    { dx: -16, h: 22 },
+    { dx: -8,  h: 30 },
+    { dx: 0,   h: 38 },
+    { dx: 8,   h: 30 },
+    { dx: 16,  h: 22 },
+    { dx: 24,  h: 10 },
+  ];
+  const barW = 4 * scale;
+  const r = 2 * scale;
+  ctx.fillStyle = color;
+  for (const bar of bars) {
+    const x = cx + bar.dx * scale - barW / 2;
+    const h = bar.h * scale;
+    const y = cy - h / 2;
+    // Rounded rect
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + barW - r, y);
+    ctx.quadraticCurveTo(x + barW, y, x + barW, y + r);
+    ctx.lineTo(x + barW, y + h - r);
+    ctx.quadraticCurveTo(x + barW, y + h, x + barW - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.fill();
+  }
 }
 
 async function renderQr(
@@ -46,24 +68,27 @@ async function renderQr(
   ctx.fillRect(0, 0, size, size);
   ctx.drawImage(tempCanvas, 0, 0, size, size);
 
-  const logo = await loadImage(style.logo);
-  if (logo) {
-    const logoArea = size * 0.22;
-    const padding = logoArea * 0.18;
-    const half = logoArea / 2 + padding;
-    const cx = size / 2;
-    const cy = size / 2;
-    ctx.fillStyle = style.logoBg;
-    ctx.fillRect(cx - half, cy - half, half * 2, half * 2);
-    ctx.drawImage(logo, cx - logoArea / 2, cy - logoArea / 2, logoArea, logoArea);
-  }
+  // Draw Toone soundwave logo in center
+  const logoArea = size * 0.22;
+  const padding = logoArea * 0.15;
+  const half = logoArea / 2 + padding;
+  const cx = size / 2;
+  const cy = size / 2;
+
+  // White/bg background behind logo
+  ctx.fillStyle = style.bg;
+  ctx.fillRect(cx - half, cy - half, half * 2, half * 2);
+
+  // Draw soundwave bars
+  const scale = logoArea / 56;
+  drawSoundwaveBars(ctx, cx, cy, scale, style.color);
 }
 
 export default function QRPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [live, setLive] = useState(false);
   const [listenerCount, setListenerCount] = useState(0);
-  const [pageTitle, setPageTitle] = useState('TrendAI Tune In');
+  const [pageTitle, setPageTitle] = useState('Toone');
   const [talkName, setTalkName] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [editingTalk, setEditingTalk] = useState(false);
@@ -111,7 +136,7 @@ export default function QRPage() {
   const handleDownloadQr = () => {
     if (!canvasRef.current) return;
     const link = document.createElement('a');
-    link.download = 'trendai-tunein-qr.png';
+    link.download = 'toone-qr.png';
     link.href = canvasRef.current.toDataURL('image/png');
     link.click();
   };
@@ -138,7 +163,7 @@ export default function QRPage() {
       </button>
 
       <div className="flex flex-col items-center gap-6 max-w-lg w-full">
-        <img src="/art/TrendAI-Logo-White-RGB.png" alt="TrendAI" className="h-14" />
+        <img src="/logo-full-white.svg" alt="Toone" className="h-14" />
 
         <h1 className="text-2xl font-bold text-center tracking-wide uppercase text-foreground">
           {pageTitle}
@@ -186,7 +211,7 @@ export default function QRPage() {
           Scan to Join
         </p>
         <p className="text-muted text-sm text-center">
-          Open your phone camera and scan the QR code above to register and tune in to the live broadcast.
+          Open your phone camera and scan the QR code above to register and listen to the live broadcast.
         </p>
 
         <StreamStatus live={live} listenerCount={listenerCount} />

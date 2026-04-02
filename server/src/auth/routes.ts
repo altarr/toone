@@ -14,7 +14,6 @@ function makeToken(user: any) {
       username: user.username,
       must_change_password: !!user.must_change_password,
       role: user.role || 'admin',
-      language: user.language || null,
     },
     config.jwtSecret,
     { expiresIn: '24h' }
@@ -27,7 +26,6 @@ function userResponse(user: any) {
     username: user.username,
     must_change_password: !!user.must_change_password,
     role: user.role || 'admin',
-    language: user.language || null,
   };
 }
 
